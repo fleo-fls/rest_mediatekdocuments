@@ -76,14 +76,16 @@ class Url {
      * @return string|array|null
      */
     public function recupVariable(string $nom, string $format="string") : string|array|null{
-        $variable = $this->data[$nom] ?? '';
-        switch ($format){
-            case "json" : 
-                $variable = $variable ? json_decode($variable, true) : null;
-                break;
-        }
-        return $variable;
-    }    
+    $variable = $this->data[$nom] ?? '';
+
+    switch ($format){
+        case "json":
+            return $variable ? json_decode($variable, true) : null;
+
+        default:
+            return $variable ? htmlspecialchars($variable, ENT_NOQUOTES) : null;
+    }
+    } 
  
     /**
      * vérifie l'authentification suivant la demande

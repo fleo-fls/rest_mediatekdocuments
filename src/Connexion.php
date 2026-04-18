@@ -68,8 +68,13 @@ class Connexion {
                 return null;
             }
         }catch(Exception $e){
-            return null;
-        }
+    echo json_encode([
+        "code" => 500,
+        "message" => "ERREUR SQL : " . $e->getMessage(),
+        "result" => ""
+    ]);
+    exit;
+    }
     }
 
     /**
@@ -88,8 +93,13 @@ class Connexion {
                 return null;
             } 
         }catch(Exception $e){
-            return null;
-        }
+    echo json_encode([
+        "code" => 500,
+        "message" => "ERREUR SQL : " . $e->getMessage(),
+        "result" => ""
+    ]);
+    exit;
+}
     }
 	
     /**
@@ -110,6 +120,11 @@ class Connexion {
         }catch(Exception $e){
             throw $e;
         }
+    }
+    
+    public function getLastInsertId()
+    {
+    return $this->conn->lastInsertId();
     }
     
 }

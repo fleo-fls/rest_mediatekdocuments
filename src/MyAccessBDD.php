@@ -62,12 +62,15 @@ class MyAccessBDD extends AccessBDD {
      * @override
      */	
     protected function traitementInsert(string $table, ?array $champs) : ?int{
-        switch($table){
-            case "" :
-                // return $this->uneFonction(parametres);
-            default:                    
-                // cas général
-                return $this->insertOneTupleOneTable($table, $champs);	
+    switch($table){
+        case "livre":
+            return $this->insertLivre($champs);
+        case "dvd":
+            return $this->insertDvd($champs);
+        case "revue":
+            return $this->insertRevue($champs);
+        default:
+            return $this->insertOneTupleOneTable($table, $champs);
         }
     }
     
@@ -81,8 +84,12 @@ class MyAccessBDD extends AccessBDD {
      */	
     protected function traitementUpdate(string $table, ?string $id, ?array $champs) : ?int{
         switch($table){
-            case "" :
-                // return $this->uneFonction(parametres);
+            case "livre":
+                return $this->updateLivre($id, $champs);
+            case "dvd":
+                return $this->updateDvd($id, $champs);
+            case "revue":
+                return $this->updateRevue($id, $champs);
             default:                    
                 // cas général
                 return $this->updateOneTupleOneTable($table, $id, $champs);
@@ -98,8 +105,12 @@ class MyAccessBDD extends AccessBDD {
      */	
     protected function traitementDelete(string $table, ?array $champs) : ?int{
         switch($table){
-            case "" :
-                // return $this->uneFonction(parametres);
+            case "livre" :
+                return $this->deleteLivre($champs);
+            case "dvd" :
+                return $this->deleteDvd($champs);
+            case "revue":
+                return $this->deleteRevue($champs);
             default:                    
                 // cas général
                 return $this->deleteTuplesOneTable($table, $champs);	
@@ -275,6 +286,431 @@ class MyAccessBDD extends AccessBDD {
         $requete .= "where e.id = :id ";
         $requete .= "order by e.dateAchat DESC";
         return $this->conn->queryBDD($requete, $champNecessaire);
-    }		    
+    }	
+    /**
+     * insert un livre dans la BDD
+     * @param array|null $champs
+     * @return int|null
+     */
+    private function insertLivre(?array $champs) : ?int
+    {
+    if (empty($champs)) {
+        return null;
+    }
+
+    $champsDocument = [
+        "id" => $champs["id"],
+        "titre" => $champs["titre"],
+        "image" => $champs["image"],
+        "idGenre" => $champs["idGenre"],
+        "idPublic" => $champs["idPublic"],
+        "idRayon" => $champs["idRayon"]
+    ];
+
+    $requeteDocument = "insert into document (id, titre, image, idGenre, idPublic, idRayon)
+                        values (:id, :titre, :image, :idGenre, :idPublic, :idRayon);";
+
+    $resultDocument = $this->conn->updateBDD($requeteDocument, $champsDocument);
+
+    if ($resultDocument === null || $resultDocument == 0) {
+        return null;
+    }
+
+    // insertion dans livres_dvd
+    $champsLivresDvd = [
+        "id" => $champs["id"]
+    ];
+
+    $requeteLivresDvd = "insert into livres_dvd (id)
+                         values (:id);";
+
+    $resultLivresDvd = $this->conn->updateBDD($requeteLivresDvd, $champsLivresDvd);
+
+    if ($resultLivresDvd === null || $resultLivresDvd == 0) {
+        return null;
+    }
+    $champsLivre = [
+        "id" => $champs["id"],
+        "ISBN" => $champs["ISBN"],
+        "auteur" => $champs["auteur"],
+        "collection" => $champs["collection"]
+    ];
+
+    $requeteLivre = "insert into livre (id, ISBN, auteur, collection)
+                     values (:id, :ISBN, :auteur, :collection);";
+
+    $resultLivre = $this->conn->updateBDD($requeteLivre, $champsLivre);
+
+    if ($resultLivre === null || $resultLivre == 0) {
+        return null;
+    }
+
+    return 1;
+    }
     
+    /**
+     * Modification d'un Livre dans la BDD
+     * @param string|null $id
+     * @param array|null $champs
+     * @return int|null
+     */
+    private function updateLivre(?string $id, ?array $champs) : ?int
+    {
+    if (is_null($id) || empty($champs)) {
+        return null;
+    }
+
+    $champsDocument = [
+        "titre" => $champs["titre"],
+        "image" => $champs["image"],
+        "idGenre" => $champs["idGenre"],
+        "idPublic" => $champs["idPublic"],
+        "idRayon" => $champs["idRayon"],
+        "id" => $id
+    ];
+
+    $requeteDocument = "update document 
+                        set titre = :titre,
+                            image = :image,
+                            idGenre = :idGenre,
+                            idPublic = :idPublic,
+                            idRayon = :idRayon
+                        where id = :id;";
+
+    $resultDocument = $this->conn->updateBDD($requeteDocument, $champsDocument);
+
+    $champsLivre = [
+        "ISBN" => $champs["ISBN"],
+        "auteur" => $champs["auteur"],
+        "collection" => $champs["collection"],
+        "id" => $id
+    ];
+
+    $requeteLivre = "update livre
+                     set ISBN = :ISBN,
+                         auteur = :auteur,
+                         collection = :collection
+                     where id = :id;";
+
+    $resultLivre = $this->conn->updateBDD($requeteLivre, $champsLivre);
+
+    if ($resultDocument === null || $resultLivre === null) {
+        return null;
+    }
+
+    return 1;
+    }
+    
+    /**
+     * Suppression d'un livre dans la BDD
+     * @param array|null $champs
+     * @return int|null
+     */
+    private function deleteLivre(?array $champs) : ?int
+    {
+    if (empty($champs)) {
+        return null;
+    }
+
+    if (!array_key_exists("id", $champs) || empty($champs["id"])) {
+        return null;
+    }
+
+    $params = ["id" => $champs["id"]];
+
+    $requeteLivre = "delete from livre where id = :id;";
+    $resultLivre = $this->conn->updateBDD($requeteLivre, $params);
+    if ($resultLivre === null || $resultLivre == 0) {
+        return null;
+    }
+
+    $requeteLivresDvd = "delete from livres_dvd where id = :id;";
+    $resultLivresDvd = $this->conn->updateBDD($requeteLivresDvd, $params);
+    if ($resultLivresDvd === null || $resultLivresDvd == 0) {
+        return null;
+    }
+
+    $requeteDocument = "delete from document where id = :id;";
+    $resultDocument = $this->conn->updateBDD($requeteDocument, $params);
+    if ($resultDocument === null || $resultDocument == 0) {
+        return null;
+    }
+
+    return 1;
+    }
+    
+    /**
+     * Ajout d'un DVD dans la BDD
+     * @param array|null $champs
+     * @return int|null
+     */
+    private function insertDvd(?array $champs) : ?int
+    {
+    if (empty($champs)) {
+        return null;
+    }
+
+    $champsDocument = [
+        "id" => $champs["id"],
+        "titre" => $champs["titre"],
+        "image" => $champs["image"],
+        "idGenre" => $champs["idGenre"],
+        "idPublic" => $champs["idPublic"],
+        "idRayon" => $champs["idRayon"]
+    ];
+
+    $requeteDocument = "insert into document (id, titre, image, idGenre, idPublic, idRayon)
+                        values (:id, :titre, :image, :idGenre, :idPublic, :idRayon);";
+
+    $resultDocument = $this->conn->updateBDD($requeteDocument, $champsDocument);
+
+    if ($resultDocument === null || $resultDocument == 0) {
+        return null;
+    }
+
+    $champsLivresDvd = [
+        "id" => $champs["id"]
+    ];
+
+    $requeteLivresDvd = "insert into livres_dvd (id)
+                         values (:id);";
+
+    $resultLivresDvd = $this->conn->updateBDD($requeteLivresDvd, $champsLivresDvd);
+
+    if ($resultLivresDvd === null || $resultLivresDvd == 0) {
+        return null;
+    }
+
+    $champsDvd = [
+        "id" => $champs["id"],
+        "duree" => $champs["duree"],
+        "realisateur" => $champs["realisateur"],
+        "synopsis" => $champs["synopsis"]
+    ];
+
+    $requeteDvd = "insert into dvd (id, duree, realisateur, synopsis)
+                   values (:id, :duree, :realisateur, :synopsis);";
+
+    $resultDvd = $this->conn->updateBDD($requeteDvd, $champsDvd);
+
+    if ($resultDvd === null || $resultDvd == 0) {
+        return null;
+    }
+
+    return 1;
+    }
+    
+    /**
+     * Modification d'un DVD dans la BDD
+     * @param string|null $id
+     * @param array|null $champs
+     * @return int|null
+     */
+    private function updateDvd(?string $id, ?array $champs) : ?int
+    {
+    if (is_null($id) || empty($champs)) {
+        return null;
+    }
+
+    $champsDocument = [
+        "titre" => $champs["titre"],
+        "image" => $champs["image"],
+        "idGenre" => $champs["idGenre"],
+        "idPublic" => $champs["idPublic"],
+        "idRayon" => $champs["idRayon"],
+        "id" => $id
+    ];
+
+    $requeteDocument = "update document 
+                        set titre = :titre,
+                            image = :image,
+                            idGenre = :idGenre,
+                            idPublic = :idPublic,
+                            idRayon = :idRayon
+                        where id = :id;";
+
+    $resultDocument = $this->conn->updateBDD($requeteDocument, $champsDocument);
+
+    $champsDvd = [
+        "duree" => $champs["duree"],
+        "realisateur" => $champs["realisateur"],
+        "synopsis" => $champs["synopsis"],
+        "id" => $id
+    ];
+
+    $requeteDvd = "update dvd
+                   set duree = :duree,
+                       realisateur = :realisateur,
+                       synopsis = :synopsis
+                   where id = :id;";
+
+    $resultDvd = $this->conn->updateBDD($requeteDvd, $champsDvd);
+
+    if ($resultDocument === null || $resultDvd === null) {
+        return null;
+    }
+
+    return 1;
+    }
+    
+    /**
+     * suppression d'un DVD dans la BDD
+     * @param array|null $champs
+     * @return int|null
+     */
+     private function deleteDvd(?array $champs) : ?int
+    {
+    if (empty($champs)) {
+        return null;
+    }
+
+    if (!array_key_exists("id", $champs) || empty($champs["id"])) {
+        return null;
+    }
+
+    $params = ["id" => $champs["id"]];
+
+    $requeteDvd = "delete from dvd where id = :id;";
+    $resultDvd = $this->conn->updateBDD($requeteDvd, $params);
+    if ($resultDvd === null || $resultDvd == 0) {
+        return null;
+    }
+
+    $requeteLivresDvd = "delete from livres_dvd where id = :id;";
+    $resultLivresDvd = $this->conn->updateBDD($requeteLivresDvd, $params);
+    if ($resultLivresDvd === null || $resultLivresDvd == 0) {
+        return null;
+    }
+
+    $requeteDocument = "delete from document where id = :id;";
+    $resultDocument = $this->conn->updateBDD($requeteDocument, $params);
+    if ($resultDocument === null || $resultDocument == 0) {
+        return null;
+    }
+
+    return 1;
+    }
+    
+ 
+    /**
+     * Ajout d'une revue dans la BDD
+     * @param array|null $champs
+     * @return int|null
+     */
+    private function insertRevue(?array $champs) : ?int
+    {
+    if (empty($champs)) {
+        return null;
+    }
+    
+    $champsDocument = [
+        "id" => $champs["id"],
+        "titre" => $champs["titre"],
+        "image" => $champs["image"],
+        "idGenre" => $champs["idGenre"],
+        "idPublic" => $champs["idPublic"],
+        "idRayon" => $champs["idRayon"]
+    ];
+    $requeteDocument = "insert into document (id, titre, image, idGenre, idPublic, idRayon)
+                        values (:id, :titre, :image, :idGenre, :idPublic, :idRayon);";
+
+    $resultDocument = $this->conn->updateBDD($requeteDocument, $champsDocument);
+
+    if ($resultDocument === null || $resultDocument == 0) {
+        return null;
+    }
+    // 2. TABLE revue
+    $champsRevue = [
+        "id" => $champs["id"],
+        "periodicite" => $champs["periodicite"],
+        "delaiMiseADispo" => $champs["delaiMiseADispo"]
+    ];
+    $requeteRevue = "insert into revue (id, periodicite, delaiMiseADispo)
+                     values (:id, :periodicite, :delaiMiseADispo);";
+    $resultRevue = $this->conn->updateBDD($requeteRevue, $champsRevue);
+    if ($resultRevue === null || $resultRevue == 0) {
+        return null;
+    }
+    return 1;
+    }
+    
+    /**
+    * Modification d'une revue dans la BDD
+    * @param string|null $id
+    * @param array|null $champs
+    * @return int|null
+    */
+    private function updateRevue(?string $id, ?array $champs) : ?int
+    {
+    if (is_null($id) || empty($champs)) {
+        return null;
+    }
+    // 1. TABLE document
+    $champsDocument = [
+        "titre" => $champs["titre"],
+        "image" => $champs["image"],
+        "idGenre" => $champs["idGenre"],
+        "idPublic" => $champs["idPublic"],
+        "idRayon" => $champs["idRayon"],
+        "id" => $id
+    ];
+    $requeteDocument = "update document
+                        set titre = :titre,
+                            image = :image,
+                            idGenre = :idGenre,
+                            idPublic = :idPublic,
+                            idRayon = :idRayon
+                        where id = :id;";
+
+    $resultDocument = $this->conn->updateBDD($requeteDocument, $champsDocument);
+    // 2. TABLE revue
+    $champsRevue = [
+        "periodicite" => $champs["periodicite"],
+        "delaiMiseADispo" => $champs["delaiMiseADispo"],
+        "id" => $id
+    ];
+    $requeteRevue = "update revue
+                     set periodicite = :periodicite,
+                         delaiMiseADispo = :delaiMiseADispo
+                     where id = :id;";
+
+    $resultRevue = $this->conn->updateBDD($requeteRevue, $champsRevue);
+    if ($resultDocument === null || $resultRevue === null) {
+        return null;
+    }
+    return 1;
+    }  
+    
+    /**
+     * suppression d'une revue dans la BDD
+     * @param array|null $champs
+     * @return int|null
+     */
+    
+    public function deleteRevue(?array $champs) : ?int
+    {
+    if (empty($champs)) {
+        return null;
+    }
+
+    if (!array_key_exists("id", $champs) || empty($champs["id"])) {
+        return null;
+    }
+
+    $params = ["id" => $champs["id"]];
+
+    $requeteRevue = "delete from revue where id = :id;";
+    $resultRevue = $this->conn->updateBDD($requeteRevue, $params);
+    if ($resultRevue === null || $resultRevue == 0) {
+        return null;
+    }
+
+    $requeteDocument = "delete from document where id = :id;";
+    $resultDocument = $this->conn->updateBDD($requeteDocument, $params);
+    if ($resultDocument === null || $resultDocument == 0) {
+        return null;
+    }
+
+    return 1;
+    }
 }
