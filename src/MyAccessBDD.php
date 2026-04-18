@@ -645,7 +645,6 @@ class MyAccessBDD extends AccessBDD {
     if (is_null($id) || empty($champs)) {
         return null;
     }
-    // 1. TABLE document
     $champsDocument = [
         "titre" => $champs["titre"],
         "image" => $champs["image"],
