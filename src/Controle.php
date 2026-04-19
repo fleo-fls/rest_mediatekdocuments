@@ -1,15 +1,14 @@
 <?php
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 include_once("MyAccessBDD.php");
 
 /**
  * Contrôleur : reçoit et traite les demandes du point d'entrée
  */
-class Controle{
-	
+class Controle {
+
     /**
-     * 
      * @var MyAccessBDD
      */
     private $myAaccessBDD;
@@ -17,62 +16,65 @@ class Controle{
     /**
      * constructeur : récupère l'instance d'accès à la BDD
      */
-    public function __construct(){
-        try{
+    public function __construct() {
+        try {
             $this->myAaccessBDD = new MyAccessBDD();
-        }catch(Exception $e){
+        } catch (\Throwable $e) {
+            error_log($e->getMessage());
             $this->reponse(500, "erreur serveur");
-            die();
+            exit;
         }
     }
 
     /**
      * réception d'une demande de requête
-     * demande de traiter la requête puis demande d'afficher la réponse
      * @param string $methodeHTTP
-     * @param string $table
+     * @param string|null $table
      * @param string|null $id
      * @param array|null $champs
      */
-    public function demande(string $methodeHTTP, string $table, ?string $id, ?array $champs){
-        $result = $this->myAaccessBDD->demande($methodeHTTP, $table, $id, $champs);
-        $this->controleResult($result);
+    public function demande($methodeHTTP, $table, $id, $champs) {
+        try {
+            $result = $this->myAaccessBDD->demande($methodeHTTP, $table, $id, $champs);
+            $this->controleResult($result);
+        } catch (\Throwable $e) {
+            error_log($e->getMessage());
+            $this->reponse(500, "erreur serveur");
+            exit;
+        }
     }
 
     /**
-     * réponse renvoyée (affichée) au client au format json
-     * @param int $code code standard HTTP (200, 500, ...)
-     * @param string $message message correspondant au code
+     * réponse renvoyée au client au format json
+     * @param int $code
+     * @param string $message
      * @param array|int|string|null $result
      */
-    private function reponse(int $code, string $message, array|int|string|null $result=""){
-        $retour = array(
+    private function reponse(int $code, string $message, array|int|string|null $result = "") {
+        $retour = [
             'code' => $code,
             'message' => $message,
             'result' => $result
-        );
+        ];
         echo json_encode($retour, JSON_UNESCAPED_UNICODE);
     }
-    
+
     /**
      * contrôle si le résultat n'est pas null
-     * demande l'affichage de la réponse adéquate
-     * @param array|int|null $result résultat de la requête
+     * @param array|int|null $result
      */
     private function controleResult(array|int|null $result) {
-        if (!is_null($result)){
+        if (!is_null($result)) {
             $this->reponse(200, "OK", $result);
-        }else{	
+        } else {
             $this->reponse(400, "requete invalide");
-        }        
+        }
     }
-	
+
     /**
      * authentification incorrecte
-     * demande d'afficher un messaage d'erreur
      */
-    public function unauthorized(){
+    public function unauthorized() {
         $this->reponse(401, "authentification incorrecte");
     }
-    
 }
